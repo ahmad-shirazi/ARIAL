@@ -2,8 +2,14 @@ import argparse
 import os
 from dotenv import load_dotenv
 
-from planner_agent import PlannerAgent
-from tools import OCRProcessor, TextRetriever, QAModule, SpatialGrounder, ComputeModule
+from arial.agent.planner_agent import PlannerAgent
+from arial.tools import (
+    OCRProcessor,
+    TextRetriever,
+    QAModule,
+    SpatialGrounder,
+    ComputeModule,
+)
 
 def main():
     """
@@ -12,7 +18,7 @@ def main():
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="ARIAL Framework for Document VQA")
-    parser.add_argument("--document_path", type=str, required=True, help="Path to the document image or PDF.")
+    parser.add_argument("--document_path", type=str, default="documents/sample_document.pdf", help="Path to the document image or PDF.")
     parser.add_argument("--question", type=str, required=True, help="Question to ask about the document.")
     
     args = parser.parse_args()

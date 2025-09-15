@@ -15,10 +15,22 @@ This project is a Python implementation of the ARIAL (Agentic Reasoning for Inte
 .
 ├── README.md
 ├── main.py                 # Main script to run the ARIAL pipeline
-├── planner_agent.py        # Contains the PlannerAgent class
-├── tools.py                # Implementation of all tools (OCR, QA, etc.)
+├── arial                   # Main package
+│   ├── __init__.py
+│   ├── agent               # Contains the PlannerAgent
+│   │   ├── __init__.py
+│   │   └── planner_agent.py
+│   └── tools               # Contains all the individual tools
+│       ├── __init__.py
+│       ├── compute.py
+│       ├── grounding.py
+│       ├── ocr.py
+│       ├── qa.py
+│       └── retrieval.py
+├── documents               # Example documents
+│   └── sample_document.pdf
 ├── requirements.txt        # Python dependencies
-└── .env.example            # Example for environment variables
+└── .gitignore              # Git ignore file
 ```
 
 ## Getting Started
