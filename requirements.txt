@@ -1,0 +1,9 @@
+transformers
+torch
+Pillow
+sentence-transformers
+scikit-learn
+python-doctr[torch]
+accelerate
+bitsandbytes
+python-dotenv
