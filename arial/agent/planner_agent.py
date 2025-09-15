@@ -31,7 +31,7 @@ class PlannerAgent:
 
     def _build_prompt(self, question: str, document_path: str) -> str:
         """
-        Builds the prompt for the agent LLM.
+        Builds the prompt for the agent LLM with few-shot examples.
         """
         tool_descriptions = """
 - RunOCR(document_path: str) -> list[dict]: Runs OCR on the document to extract text and bounding boxes.
@@ -41,20 +41,42 @@ class PlannerAgent:
 - Compute(operation: str, values: list) -> float: Performs a calculation (e.g., 'sum', 'average').
 """
         
+        few_shot_example = """
+Example reasoning trace:
+Question: "What is the total amount due?"
+Thought: I need to first extract text from the document, then find relevant segments about amounts or totals, then answer the question and locate the answer on the document.
+Action: {"RunOCR": {"document_path": "invoice.pdf"}}
+Observation: [{"text": "Invoice #12345", "box": [10, 20, 200, 40]}, {"text": "Amount: $150.00", "box": [10, 100, 180, 120]}, {"text": "Tax: $15.00", "box": [10, 130, 150, 150]}, {"text": "Total: $165.00", "box": [10, 160, 180, 180]}]
+Thought: Now I need to find text segments related to "total amount" to focus on the relevant parts.
+Action: {"FindText": {"query": "total amount due"}}
+Observation: [{"text": "Total: $165.00", "box": [10, 160, 180, 180]}, {"text": "Amount: $150.00", "box": [10, 100, 180, 120]}]
+Thought: I have the relevant context. Now I can answer the question using the QA module.
+Action: {"AskQA": {"question": "What is the total amount due?", "context": "Total: $165.00 Amount: $150.00"}}
+Observation: "$165.00"
+Thought: I have the answer. Now I need to ground it in the document to find its bounding box.
+Action: {"GroundAnswer": {"answer_text": "$165.00"}}
+Observation: [10, 160, 180, 180]
+Thought: Perfect! I have both the answer and its location.
+Final Answer: {"answer": "$165.00", "bounding_box": [10, 160, 180, 180]}
+"""
+        
         history_str = "\n".join(self.history)
         
         prompt = f"""
 You are a helpful assistant that answers questions based on a document. You have access to the following tools:
 {tool_descriptions}
 
+{few_shot_example}
+
 Your task is to answer the following question: "{question}" for the document at "{document_path}".
 
 Follow this process:
-1. Think about what you need to do to answer the question. Your thought process should be in a 'Thought:' block.
-2. Based on your thought, choose one of the available tools and specify the arguments in a single-line JSON 'Action:' block.
-3. Observe the result of the tool, which will be provided to you.
-4. Repeat until you have the final answer and its bounding box.
-5. Once you have the final answer and its bounding box, respond with a 'Final Answer:' block containing a JSON object with 'answer' and 'bounding_box'.
+1. ALWAYS start by running OCR to extract text from the document.
+2. Think about what you need to do to answer the question. Your thought process should be in a 'Thought:' block.
+3. Based on your thought, choose one of the available tools and specify the arguments in a single-line JSON 'Action:' block.
+4. Observe the result of the tool, which will be provided to you.
+5. Repeat until you have the final answer and its bounding box.
+6. Once you have the final answer and its bounding box, respond with a 'Final Answer:' block containing a JSON object with 'answer' and 'bounding_box'.
 
 Here is the history of your work so far:
 {history_str}
@@ -98,6 +120,19 @@ Here is the history of your work so far:
         """
         self.history = []
         state = {} # To hold OCR results, retrieved text, etc.
+        
+        # Automatically run OCR as the first step
+        print("\n--- Auto-initializing with OCR ---")
+        try:
+            ocr_tool = self.tools['RunOCR']
+            ocr_results = ocr_tool.run(document_path)
+            state['ocr_results'] = ocr_results
+            self.history.append(f"Action: {{'RunOCR': {{'document_path': '{document_path}'}}}}")
+            self.history.append(f"Observation: Found {len(ocr_results)} text segments")
+            print(f"OCR completed. Found {len(ocr_results)} text segments.")
+        except Exception as e:
+            print(f"Error during OCR initialization: {e}")
+            return None, None
         
         max_turns = 10
         for i in range(max_turns):
@@ -152,7 +187,11 @@ Here is the history of your work so far:
                     elif tool_name == 'GroundAnswer':
                         if 'ocr_results' not in state or 'answer_text' not in state:
                             raise ValueError("OCR and QA must be run before grounding.")
-                        result = tool.ground(answer_text=state['answer_text'], ocr_results=state['ocr_results'])
+                        result = tool.ground(
+                            answer_text=state['answer_text'], 
+                            ocr_results=state['ocr_results'],
+                            question=question
+                        )
                     else:
                         result = tool.run(**args)
 

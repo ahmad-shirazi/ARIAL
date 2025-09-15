@@ -7,3 +7,4 @@ python-doctr[torch]
 accelerate
 bitsandbytes
 python-dotenv
+torchvision

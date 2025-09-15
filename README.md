@@ -87,10 +87,23 @@ The script will download the necessary models on the first run, which might take
 
 The ARIAL framework operates in three stages:
 
-1.  **Stage 1: Input Processing**: The `OCRProcessor` uses `doctr` to extract text segments and their bounding boxes from the input document.
-2.  **Stage 2: Agentic Reasoning**: The `PlannerAgent`, powered by a large language model, uses a set of tools to answer the question. It follows a "Sense-Think-Act" loop to decide which tool to call next. The available tools are:
-    -   `TextRetriever`: Finds relevant text segments using semantic and lexical search.
-    -   `QAModule`: Generates a textual answer from the context.
-    -   `SpatialGrounder`: Locates the answer's bounding box on the document.
-    -   `ComputeModule`: Performs numerical calculations.
-3.  **Stage 3: Output Generation**: The final answer and its bounding box are returned.
+1.  **Stage 1: Input Processing**: The `OCRProcessor` implements a two-stage OCR process:
+    - **Text Detection**: Uses DB (Differentiable Binarization) via `doctr` to identify text regions
+    - **Text Recognition**: Uses Microsoft's TrOCR model to transcribe text within detected regions
+    - **Preprocessing**: Includes image enhancement, resizing, and contrast adjustment
+
+2.  **Stage 2: Agentic Reasoning**: The `PlannerAgent`, powered by Llama-3-8B-Instruct, automatically starts with OCR and uses a "Sense-Think-Act" loop with few-shot examples to decide which tool to call next. The available tools are:
+    -   `TextRetriever`: Finds relevant text segments using semantic (sentence-transformers) and lexical search
+    -   `QAModule`: Generates textual answers using Gemma-2B-IT
+    -   `SpatialGrounder`: Locates answers on the document with contextual disambiguation using question keywords
+    -   `ComputeModule`: Performs numerical calculations for questions requiring computation
+
+3.  **Stage 3: Output Generation**: The final answer and its precise bounding box coordinates are returned.
+
+## Key Features
+
+- **True Two-Stage OCR**: Separate detection and recognition stages using state-of-the-art models
+- **Contextual Grounding**: Disambiguates multiple answer candidates using proximity to question keywords
+- **Automatic Initialization**: Agent automatically starts with OCR extraction
+- **Few-Shot Learning**: Uses example reasoning traces to guide the agent's decision-making
+- **Robust Error Handling**: Comprehensive error handling throughout the pipeline
