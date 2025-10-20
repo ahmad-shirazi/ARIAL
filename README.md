@@ -1,7 +1,7 @@
 # ARIAL Framework Implementation
 
 This project is a Python implementation of the ARIAL (Agentic Reasoning for Interpretable Answer Localization) framework for Document Visual Question Answering (DocVQA).
-![ARIAL](img/LMM-arial.png)
+![ARIAL](img/arc.png)
 ## Features
 
 - **End-to-End DocVQA**: Takes a document image and a question, and returns a textual answer with its bounding box.
